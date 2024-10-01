@@ -1,0 +1,97 @@
+import random
+
+#fitness function: calculates queen pairs that don't collide
+def fitness(chromosome, n):
+    maxFitness = n*(n-1)/2
+    non_attacking_pairs = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            if chromosome[i] != chromosome[j] and abs(chromosome[i] - chromosome[j]) != j - i:
+                non_attacking_pairs += 1
+    return non_attacking_pairs
+
+#roulette selection function
+def roulette_selection(population, fitnesses):
+    total_fitness = sum(fitnesses)
+    
+    # Generate a random point between 0 and total_fitness
+    pick = random.uniform(0, total_fitness)
+    current = 0
+
+    # Select the individual whose fitness puts it over the random threshold
+    for i, individual in enumerate(population):
+        current += fitnesses[i]
+        if current > pick:
+            return individual
+
+#single point crossover
+def crossover(parent1, parent2, n):
+    crossover_point = random.randint(0, n - 1)
+    return parent1[0:crossover_point] + parent2[crossover_point:n]
+
+#mutate a chromosome
+def mutate(chromosome, mutation_rate, n):
+    if random.random() < mutation_rate:
+        i, j = random.sample(range(n), 2)
+        chromosome[i], chromosome[j] = chromosome[j], chromosome[i]
+    return chromosome
+
+def print_board(chromosome, n):
+    # Create an empty n x n board
+    board = [['.' for _ in range(n)] for _ in range(n)]
+    
+    # Place the queens
+    for row, col in enumerate(chromosome):
+        board[row][col] = 'Q'
+    
+    for row in board:
+        print(" ".join(row))
+    print("\n")
+
+def genetic_algorithm(population_size, max_generations, mutation_rate, n):
+    #inserting randomly generated chromosomes into the population
+    population = [random.sample(range(n), n) for _ in range(population_size)]
+    maxFitness = n*(n-1)/2
+
+    for generation in range(max_generations):
+        fitnesses = [fitness(ind, n) for ind in population]
+
+        local_best_fitness = max(fitnesses)
+        local_best_chromosome = population[fitnesses.index(local_best_fitness)]
+
+        #print current generation
+        print(f"Generation = {generation}:")
+        for i, individual in enumerate(population):
+            print(f"  Chromosome {i}: {individual}, Fitness: {fitnesses[i]}")
+
+        #print best chromosome of current generation and the board
+        print(f"Generation {generation}: Best Fitness = {local_best_fitness}")
+        print("Generation's Best Chromosome:", local_best_chromosome)
+        print_board(local_best_chromosome, n)
+
+        #if solution is found
+        if maxFitness in fitnesses:
+            solution = population[fitnesses.index(maxFitness)]
+            print(f"Solution in generation {generation}!")
+            print(f"Solution Chromosome = {solution}, Max Fitness = {maxFitness}")
+            return solution
+
+        #generating a new population
+        new_population = []
+        for i in range(population_size):
+            parent1 = roulette_selection(population, fitnesses)
+            parent2 = roulette_selection(population, fitnesses)
+            offspring = mutate(crossover(parent1, parent2, n), mutation_rate, n)
+            new_population.append(offspring)
+            
+        population = new_population
+
+    #if no solution is found
+    bestFitness = max(fitnesses)
+    bestSolution = population[fitnesses.index(bestFitness)]
+    print("No real solution reached.")
+    print(f"Best Chromosome = {bestSolution}, Best Fitness = {bestFitness}")
+    return bestSolution
+
+solution = genetic_algorithm(25, 50, 0.05, 8) #change population_size, max_generations, mutation_rate, and n here
+print_board(solution, 8)
